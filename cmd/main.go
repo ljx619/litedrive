@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"litedrive/controllers"
-	"litedrive/middlewares"
-	"litedrive/models"
+	"litedrive/internal/controllers"
+	"litedrive/internal/middlewares"
+	"litedrive/internal/models"
 )
 
 func init() {
@@ -13,7 +13,7 @@ func init() {
 
 func main() {
 	r := gin.Default()
-	api := r.Group("/api")
+	api := r.Group("/api/auth")
 	{
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
@@ -28,6 +28,7 @@ func main() {
 				"msg":  "ok",
 			})
 		})
+		//protected.GET("/files", controllers.Register())
 	}
 
 	r.Run(":8080")

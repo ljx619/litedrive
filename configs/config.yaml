@@ -1,0 +1,7 @@
+server:
+  port: 8080
+database:
+  dsn: "root:root@tcp(localhost:3306)/litedrive?charset=utf8mb4&parseTime=True"
+jwt:
+  secret: "wP3-sN6&gG4-lV8>gJ9)"
+  expires: 1 # 小时

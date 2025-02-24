@@ -4,7 +4,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"html"
-	"litedrive/utils/token"
+	"litedrive/internal/utils"
 	"strings"
 )
 
@@ -12,6 +12,17 @@ type User struct {
 	gorm.Model
 	Username string `gorm:"size:255;not null;unique" json:"username"`
 	Password string `gorm:"size:255;not null;" json:"password"`
+}
+
+type File struct {
+	gorm.Model
+	UserID   uint   `gorm:"not null;unique" json:"user_id"`
+	Name     string `gorm:"size:255;not null;" json:"name"`
+	Path     string `gorm:"size:255;not null;" json:"path"`
+	Size     int64  `gorm:"not null;" json:"size"`
+	IsDir    bool   `gorm:"not null;" json:"isdir"`
+	ParentID uint   `gorm:"not null;" json:"parent_id"`
+	MimeType string `gorm:"size:255;not null;" json:"mime_type"`
 }
 
 func (u *User) SaveUser() (*User, error) {
@@ -48,7 +59,7 @@ func LoginCheck(username string, password string) (string, error) {
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
 		return "", err
 	}
-	token, err := token.GenerateToken(u.ID)
+	token, err := utils.GenerateToken(u.ID)
 	if err != nil {
 		return "", err
 	}

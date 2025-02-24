@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"litedrive/models"
+	"litedrive/internal/models"
 	"net/http"
 )
 
@@ -27,11 +27,16 @@ func Register(c *gin.Context) {
 	_, err := u.SaveUser()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"data": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "register success",
-		"data":    req,
+		"code":    http.StatusOK,
+		"message": "注册成功",
+		"data": gin.H{
+			"id":       u.ID,
+			"username": u.Username,
+		},
 	})
 }
 
@@ -49,12 +54,15 @@ func Login(c *gin.Context) {
 
 	token, err := models.LoginCheck(u.Username, u.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"data": "username or password is incorrect.",
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"data": "用户名或密码错误",
 		})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"token": token,
+		"code":    http.StatusOK,
+		"message": "登录成功",
+		"data":    gin.H{"token": token},
 	})
 
 }
