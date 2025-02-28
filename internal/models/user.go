@@ -14,17 +14,6 @@ type User struct {
 	Password string `gorm:"size:255;not null;" json:"password"`
 }
 
-type File struct {
-	gorm.Model
-	UserID   uint   `gorm:"not null;unique" json:"user_id"`
-	Name     string `gorm:"size:255;not null;" json:"name"`
-	Path     string `gorm:"size:255;not null;" json:"path"`
-	Size     int64  `gorm:"not null;" json:"size"`
-	IsDir    bool   `gorm:"not null;" json:"isdir"`
-	ParentID uint   `gorm:"not null;" json:"parent_id"`
-	MimeType string `gorm:"size:255;not null;" json:"mime_type"`
-}
-
 func (u *User) SaveUser() (*User, error) {
 	err := DB.Create(&u).Error
 	if err != nil {

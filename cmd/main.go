@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"litedrive/internal/controllers"
-	"litedrive/internal/middlewares"
 	"litedrive/internal/models"
+	"litedrive/internal/router"
+	"litedrive/internal/utils"
+	"log"
+	"strconv"
 )
 
 func init() {
@@ -12,24 +13,11 @@ func init() {
 }
 
 func main() {
-	r := gin.Default()
-	api := r.Group("/api/auth")
-	{
-		api.POST("/register", controllers.Register)
-		api.POST("/login", controllers.Login)
+	config, _ := utils.LoadConfig("./configs/config.yaml")
+
+	api := router.InitRouter()
+	if err := api.Run(":" + strconv.Itoa(config.Server.Port)); err != nil {
+		log.Fatal(err)
 	}
 
-	protected := r.Group("/api/admin")
-	{
-		protected.Use(middlewares.JwtAuthMiddleware())
-		protected.GET("/user", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"code": 200,
-				"msg":  "ok",
-			})
-		})
-		//protected.GET("/files", controllers.Register())
-	}
-
-	r.Run(":8080")
 }
