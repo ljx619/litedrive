@@ -2,33 +2,41 @@ package models
 
 import (
 	"gorm.io/gorm"
-	"time"
 )
 
 // File 表示文件系统中的文件或目录
 type File struct {
 	gorm.Model
-	Name        string     `json:"name" gorm:"not null"`
-	Path        string     `json:"path" gorm:"not null"`
-	Size        int64      `json:"size" gorm:"default:0"`
-	Type        string     `json:"type" gorm:"not null"` // file 或 directory
-	ContentType string     `json:"content_type"`
-	UserID      uint       `json:"user_id" gorm:"not null"`
-	ParentID    *uint      `json:"parent_id"`
-	IsDeleted   bool       `json:"is_deleted" gorm:"default:false"`
-	ShareCode   string     `json:"share_code"`
-	ShareExpire *time.Time `json:"share_expire"`
+	UserID uint   `json:"user_id"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Path   string `json:"path"`
 }
 
-// FileService 文件服务接口
-type FileService interface {
-	Upload(userID uint, filename string, parentID *uint, fileData []byte, contentType string) (*File, error)
-	Download(userID uint, fileID uint) (*File, []byte, error)
-	List(userID uint, parentID *uint) ([]File, error)
-	Delete(userID uint, fileID uint) error
-	CreateDirectory(userID uint, name string, parentID *uint) (*File, error)
-	Move(userID uint, fileID uint, newParentID *uint) error
-	Rename(userID uint, fileID uint, newName string) error
-	Share(userID uint, fileID uint, expireDays int) (string, error)
-	GetByShareCode(shareCode string) (*File, []byte, error)
+// CreateFile 创建文件记录
+func (f *File) CreateFile() error {
+	return DB.Create(f).Error
+}
+
+// DeleteFile 删除文件记录
+func (f *File) DeleteFile(fileID string) error {
+	return DB.Delete(&File{}, "id = ?", fileID).Error
+}
+
+// GetFileByID 根据 ID 获取文件信息
+func GetFileByID(fileID string) (*File, error) {
+	var file File
+	if err := DB.First(&file, "id = ?", fileID).Error; err != nil {
+		return nil, err
+	}
+	return &file, nil
+}
+
+// GetAllFiles 获取所有文件信息
+func GetAllFiles() ([]File, error) {
+	var files []File
+	if err := DB.Find(&files).Error; err != nil {
+		return nil, err
+	}
+	return files, nil
 }

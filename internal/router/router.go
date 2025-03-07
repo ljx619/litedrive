@@ -14,16 +14,14 @@ func InitRouter() *gin.Engine {
 		api.POST("/login", controllers.Login)
 	}
 
-	protected := r.Group("/api/admin")
+	apiFiles := r.Group("/api/files")
 	{
-		protected.Use(middlewares.JwtAuthMiddleware())
-		protected.GET("/user", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"code": 200,
-				"msg":  "ok",
-			})
-		})
-		//protected.GET("/files", controllers.Register())
+		apiFiles.Use(middlewares.JwtAuthMiddleware())
+		apiFiles.POST("/upload", controllers.UploadFile) // 上传文件
+		//apiFiles.GET("/:fileID", controllers.GetFileInfo)           // 获取文件信息
+		//apiFiles.GET("/:fileID/download", controllers.DownloadFile) // 下载文件
+		//apiFiles.DELETE("/:fileID", controllers.DeleteFile)         // 删除文件
+		//apiFiles.GET("/list", controllers.ListFiles)                // 获取文件列表
 	}
 
 	return r
