@@ -19,7 +19,7 @@ func (f *File) CreateFile() error {
 }
 
 // DeleteFile 删除文件记录
-func (f *File) DeleteFile(fileID string) error {
+func DeleteFile(fileID string) error {
 	return DB.Delete(&File{}, "id = ?", fileID).Error
 }
 
