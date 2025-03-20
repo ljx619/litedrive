@@ -51,24 +51,6 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 		return serializer.ErrorResponse(err)
 	}
 
-	//秒传逻辑
-	existingFile, err := models.GetFileBySha(fileSha)
-	if err == nil && existingFile != nil {
-		//说明数据库此文件已存在 直接绑定用户
-		userFileRecord := &models.UserFile{
-			UserID:   userIDInt,
-			FileSha:  fileSha,
-			FileSize: header.Size,
-			FileName: header.Filename,
-		}
-
-		if err := userFileRecord.OnUserFileUploadFinished(); err != nil {
-			return serializer.ErrorResponse(err)
-		}
-
-		return serializer.SuccessResponse(existingFile)
-	}
-
 	// 生成存储路径
 	filePath := filepath.Join(config.Storage.Root, header.Filename)
 
@@ -122,6 +104,7 @@ func (s *FileService) GetFileInfo(c *gin.Context) serializer.Response {
 	}
 	return serializer.SuccessResponse(file)
 }
+
 func (s *FileService) DownloadFile(c *gin.Context) serializer.Response {
 	fileID := c.Param("fileID")
 	file, err := models.GetFileByID(fileID)
@@ -164,25 +147,42 @@ func (s *FileService) ListFiles(c *gin.Context) serializer.Response {
 	return serializer.SuccessResponse(allFiles)
 }
 
-//func TryFastUpload(c *gin.Context) serializer.Response {
-//	//解析请求参数
-//	// 获取上下文中的 user_id
-//	userID, exists := c.Get("user_id")
-//	if !exists {
-//		return serializer.ErrorResponse(errors.New("user not logged in"))
-//	}
-//	// 转换为合适类型
-//	userIDInt := userID.(uint)
-//
-//	// 获取上传的文件
-//	file, header, err := c.Request.FormFile("explorer")
-//	if err != nil {
-//		return serializer.ErrorResponse(err)
-//	}
-//	defer file.Close()
-//
-//	//从文件表查找相同hash文件
-//	//查不到记录则返回秒传失败
-//	//上传过则将文件信息写入用户文件表，返回成功
-//	return true
-//}
+func (s *FileService) TryFastUpload(c *gin.Context) serializer.Response {
+	// 获取上下文中的 user_id
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return serializer.ErrorResponse(errors.New("user not logged in"))
+	}
+	userIDInt := userID.(uint)
+
+	// 从前端请求获取文件 SHA256 和 文件名
+	fileSha := c.PostForm("file_sha")
+	fileName := c.PostForm("file_name") // 获取用户传来的文件名
+	if fileSha == "" {
+		return serializer.ErrorResponse(errors.New("file SHA256 is required"))
+	}
+	if fileName == "" {
+		return serializer.ErrorResponse(errors.New("file name is required"))
+	}
+
+	// 查找数据库，看该哈希值是否存在
+	existingFile, err := models.GetFileBySha(fileSha)
+	if err != nil || existingFile == nil {
+		// 文件不存在，返回秒传失败
+		return serializer.ErrorResponse(errors.New("秒传失败，文件不存在"))
+	}
+
+	// 绑定用户文件
+	userFileRecord := &models.UserFile{
+		UserID:   userIDInt,
+		FileSha:  fileSha,
+		FileSize: existingFile.Size,
+		FileName: fileName,
+	}
+
+	if err := userFileRecord.OnUserFileUploadFinished(); err != nil {
+		return serializer.ErrorResponse(err)
+	}
+
+	return serializer.SuccessResponse(existingFile)
+}
