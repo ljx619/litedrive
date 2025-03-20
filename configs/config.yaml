@@ -1,10 +1,22 @@
 server:
   port: 8080
+
 database:
   dsn: "root:root@tcp(localhost:3306)/litedrive?charset=utf8mb4&parseTime=True"
+
+redis:
+  host: "192.168.200.217:6379"
+  password: "root"
+
 jwt:
   secret: "wP3-sN6&gG4-lV8>gJ9)"
   expires: 1 # 小时
+
+ceph:
+  endpoint: "http://192.168.200.217:7480"
+  access_key: "N6YZS1U3ST28XHTT0CNZ"
+  secret_key: "0qGZY1tiVzVJVRYmWEmIj8TwALXkN4kGAkT3Iv2G"
+
 storage:
   root: "./storage"
   max_upload_size: "104857600"

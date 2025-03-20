@@ -1,16 +1,18 @@
 package models
 
 import (
+	"errors"
 	"gorm.io/gorm"
 )
 
-// File 表示文件系统中的文件或目录
+// File 文件元信息结构
 type File struct {
 	gorm.Model
-	UserID uint   `json:"user_id"`
-	Name   string `json:"name"`
-	Size   int64  `json:"size"`
-	Path   string `json:"path"`
+	Sha    string `json:"sha" gorm:"size:64;unique"`
+	UserID uint   `json:"user_id" gorm:"index"`
+	Name   string `json:"name" gorm:"size:255;not null"`
+	Size   int64  `json:"size" gorm:"not null"`
+	Path   string `json:"path" gorm:"size:255;not null"`
 }
 
 // CreateFile 创建文件记录
@@ -39,4 +41,16 @@ func GetAllFiles() ([]File, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+// GetFileBySha 根据 SHA 获取文件
+func GetFileBySha(sha string) (*File, error) {
+	var file File
+	if err := DB.Where("sha = ?", sha).First(&file).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // 没找到，返回 nil
+		}
+		return nil, err
+	}
+	return &file, nil
 }

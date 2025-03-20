@@ -1,6 +1,8 @@
 package main
 
 import (
+	"litedrive/internal/cache/redis"
+	"litedrive/internal/firesystem/ceph"
 	"litedrive/internal/models"
 	"litedrive/internal/router"
 	"litedrive/internal/utils"
@@ -9,12 +11,17 @@ import (
 )
 
 func init() {
-	models.ConnectDatabase()
+	models.InitDatabase()
+	redis.InitRedis()
+	ceph.InitCephClient()
 }
 
 func main() {
-	config, _ := utils.LoadConfig("./configs/config.yaml")
-
+	defer models.CloseDatabase()
+	defer redis.CloseRedis()
+	//加载配置文件
+	config, _ := utils.LoadConfig()
+	//注册路由
 	api := router.InitRouter()
 	if err := api.Run(":" + strconv.Itoa(config.Server.Port)); err != nil {
 		log.Fatal(err)

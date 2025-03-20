@@ -10,7 +10,7 @@ import (
 )
 
 func GenerateToken(user_id uint) (string, error) {
-	config, err := LoadConfig("./configs/config.yaml")
+	config, err := LoadConfig()
 
 	token_lifespan := config.JWT.Expires
 	if err != nil {
@@ -27,7 +27,7 @@ func GenerateToken(user_id uint) (string, error) {
 }
 
 func TokenValid(c *gin.Context) error {
-	config, _ := LoadConfig("./configs/config.yaml")
+	config, _ := LoadConfig()
 
 	tokenString := ExtractToken(c)
 	fmt.Println(tokenString)
@@ -55,7 +55,7 @@ func ExtractToken(c *gin.Context) string {
 
 // 从jwt中解析出user_id
 func ExtractTokenID(c *gin.Context) (uint, error) {
-	config, _ := LoadConfig("./configs/config.yaml")
+	config, _ := LoadConfig()
 
 	tokenString := ExtractToken(c)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {

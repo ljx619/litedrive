@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"litedrive/internal/utils"
@@ -10,17 +9,30 @@ import (
 
 var DB *gorm.DB
 
-func ConnectDatabase() {
-	config, err := utils.LoadConfig("./configs/config.yaml")
+func InitDatabase() {
+	config, err := utils.LoadConfig()
 
 	DB, err = gorm.Open(mysql.Open(config.Database.DSN), &gorm.Config{})
 
 	if err != nil {
 		log.Fatal("Error connecting to database")
 	} else {
-		fmt.Printf("Connect to database success")
+		log.Println("Connected to database successfully")
 	}
 
-	DB.AutoMigrate(&User{}, &File{})
+	DB.AutoMigrate(&User{}, &File{}, &UserFile{})
 
+}
+
+// CloseDatabase 关闭数据库连接
+func CloseDatabase() {
+	if DB != nil {
+		sqlDB, err := DB.DB()
+		if err != nil {
+			log.Printf("Failed to get sqlDB: %v", err)
+			return
+		}
+		_ = sqlDB.Close()
+		log.Println("Database connection closed.")
+	}
 }

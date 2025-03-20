@@ -22,6 +22,15 @@ func InitRouter() *gin.Engine {
 		apiFiles.GET("/:fileID/download", controllers.DownloadFile) // 下载文件
 		apiFiles.DELETE("/:fileID", controllers.DeleteFile)         // 删除文件
 		apiFiles.GET("/list", controllers.ListFiles)                // 获取文件列表
+		//apiFiles.PUT("/:fileID/move", controllers.MoveFile)
+	}
+
+	apiChunk := r.Group("/api/chunk")
+	{
+		apiChunk.Use(middlewares.JwtAuthMiddleware())
+		//apiChunk.POST("/upload", controllers.UploadChunk(c))
+		//apiChunk.POST("/upload", controllers.CheckChunkStatus(c))
+		//apiChunk.POST("/upload", controllers.ResumeChunkUpload(c))
 	}
 
 	return r

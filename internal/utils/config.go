@@ -10,6 +10,8 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	JWT      JWTConfig      `yaml:"jwt"`
 	Storage  StorageConfig  `yaml:"storage"`
+	Redis    RedisConfig    `yaml:"redis"`
+	Ceph     CephConfig     `yaml:"ceph"`
 }
 
 type ServerConfig struct {
@@ -29,9 +31,20 @@ type StorageConfig struct {
 	Root string `yaml:"root"`
 }
 
-func LoadConfig(path string) (*Config, error) {
+type CephConfig struct {
+	Endpoint  string `yaml:"endpoint"`
+	AccessKey string `yaml:"accessKey"`
+	SecretKey string `yaml:"secretKey"`
+}
+
+type RedisConfig struct {
+	Host     string `yaml:"host"`
+	Password string `yaml:"password"`
+}
+
+func LoadConfig() (*Config, error) {
 	config := &Config{}
-	file, err := os.Open(path)
+	file, err := os.Open("./configs/config.yaml")
 	if err != nil {
 		return nil, err
 	}
