@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"litedrive/internal/controllers"
 	"litedrive/internal/middlewares"
+	"litedrive/internal/router/controllers"
 )
 
 func InitRouter() *gin.Engine {
@@ -28,9 +28,9 @@ func InitRouter() *gin.Engine {
 	apiChunk := r.Group("/api/chunk")
 	{
 		apiChunk.Use(middlewares.JwtAuthMiddleware())
-		//apiChunk.POST("/upload", controllers.UploadChunk(c))
-		//apiChunk.POST("/upload", controllers.CheckChunkStatus(c))
-		//apiChunk.POST("/upload", controllers.ResumeChunkUpload(c))
+		apiChunk.POST("/initMultUpload", controllers.InitializeMultipartUpload)
+		apiChunk.POST("/uploadPart", controllers.UploadPart)
+		apiChunk.POST("/completemultupload", controllers.CompleteMultipartUpload)
 	}
 
 	return r
