@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"golang.org/x/net/context"
+	"io"
 	"litedrive/internal/utils"
 	"log"
 )
@@ -18,12 +19,15 @@ var CephClient *s3.Client
 
 // InitCephClient 初始化 Ceph S3 客户端
 func InitCephClient() {
+	// 加载配置
 	cephConfig, _ := utils.LoadConfig()
 	endpoint := cephConfig.Ceph.Endpoint
 	accessKey := cephConfig.Ceph.AccessKey
 	secretKey := cephConfig.Ceph.SecretKey
+	// 创建 s3 配置
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(""),
+		// 指定一个 aws 默认区域, 实际应该对 ceph 无影响(待验证),为空则报 dns 错误
+		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
 			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
@@ -37,11 +41,18 @@ func InitCephClient() {
 	if err != nil {
 		log.Fatalf("加载 Ceph 配置失败: %v", err)
 	}
-
+	// 创建 ceph 客户端
 	CephClient = s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.UsePathStyle = true // Ceph 需要路径访问模式
 	})
-	log.Println("Ceph 客户端初始化成功")
+
+	// 测试连接是否成功
+	_, err = CephClient.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+	if err != nil {
+		log.Fatalf("Ceph 连接测试失败: %v", err)
+	} else {
+		log.Println("Ceph 客户端初始化成功并通过连接测试")
+	}
 }
 
 // CheckBucket 检查存储桶是否存在
@@ -102,11 +113,11 @@ func ListObjects(bucketName string) error {
 }
 
 // UploadObject 上传对象
-func UploadObject(bucketName, objectKey, content string) error {
+func UploadObject(bucketName, objectKey string, file io.Reader) error {
 	_, err := CephClient.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
-		Body:   bytes.NewReader([]byte(content)),
+		Body:   file,
 	})
 	if err != nil {
 		return fmt.Errorf("上传对象失败: %w", err)

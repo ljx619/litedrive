@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"io"
+	"litedrive/internal/firesystem/ceph"
 	"litedrive/internal/models"
 	"litedrive/internal/utils"
 	"litedrive/pkg/serializer"
@@ -63,6 +64,24 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 
 	//写入文件
 	fileSize, err := io.Copy(outFile, file)
+	if err != nil {
+		return serializer.ErrorResponse(err)
+	}
+
+	//重置文件指针
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return serializer.ErrorResponse(err)
+	}
+
+	// TODO 经测试 此桶未作 sha 唯一验证 但是文件表中做了验证 所以数据会不一致
+	//同时写入到 ceph 存储
+	filePath = "/ceph/" + fileSha + "/" + header.Filename
+	err = ceph.UploadObject("testbucket1", filePath, file)
+	if err != nil {
+		return serializer.ErrorResponse(err)
+	}
+	err = ceph.ListObjects("testbucket1")
 	if err != nil {
 		return serializer.ErrorResponse(err)
 	}

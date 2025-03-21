@@ -33,8 +33,8 @@ type StorageConfig struct {
 
 type CephConfig struct {
 	Endpoint  string `yaml:"endpoint"`
-	AccessKey string `yaml:"accessKey"`
-	SecretKey string `yaml:"secretKey"`
+	AccessKey string `yaml:"access_key"`
+	SecretKey string `yaml:"secret_key"`
 }
 
 type RedisConfig struct {
