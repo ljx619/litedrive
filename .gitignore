@@ -81,3 +81,7 @@ __debug_bin
 ######################
 .sass-cache/*
 node_modules/
+
+# 开发配置文件 #
+######################
+./configs/config.dev.yaml

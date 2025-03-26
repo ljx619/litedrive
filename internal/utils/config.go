@@ -1,57 +1,88 @@
 package utils
 
 import (
-	"gopkg.in/yaml.v3"
+	"fmt"
+	"github.com/spf13/viper"
 	"os"
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	JWT      JWTConfig      `yaml:"jwt"`
-	Storage  StorageConfig  `yaml:"storage"`
-	Redis    RedisConfig    `yaml:"redis"`
-	Ceph     CephConfig     `yaml:"ceph"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+	Redis    RedisConfig    `mapstructure:"redis"`
+	Ceph     CephConfig     `mapstructure:"ceph"`
+	Cos      CosConfig      `mapstructure:"cos"`
 }
 
 type ServerConfig struct {
-	Port int `yaml:"port"`
+	Port int `mapstructure:"port"`
 }
 
 type DatabaseConfig struct {
-	DSN string `yaml:"dsn"`
+	DSN string `mapstructure:"dsn"`
 }
 
 type JWTConfig struct {
-	Secret  string `yaml:"secret"`
-	Expires int    `yaml:"expires"`
+	Secret  string `mapstructure:"secret"`
+	Expires int    `mapstructure:"expires"`
 }
 
 type StorageConfig struct {
-	Root string `yaml:"root"`
+	Root string `mapstructure:"root"`
 }
 
 type CephConfig struct {
-	Endpoint  string `yaml:"endpoint"`
-	AccessKey string `yaml:"access_key"`
-	SecretKey string `yaml:"secret_key"`
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
 }
 
 type RedisConfig struct {
-	Host     string `yaml:"host"`
-	Password string `yaml:"password"`
+	Host     string `mapstructure:"host"`
+	Password string `mapstructure:"password"`
 }
 
-func LoadConfig() (*Config, error) {
-	config := &Config{}
-	file, err := os.Open("./configs/config.yaml")
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+type CosConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	SecretID  string `mapstructure:"secret_id"`
+	SecretKey string `mapstructure:"secret_key"`
+}
 
-	if err := yaml.NewDecoder(file).Decode(config); err != nil {
+const defaultConfigPath = "./configs"
+
+func LoadConfig() (*Config, error) {
+	// 读取环境变量 APP_ENV（默认为 "prod"）
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "prod"
+	}
+
+	viper.SetConfigName("config") // 先加载默认配置
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(defaultConfigPath)
+
+	// 读取基础配置
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
-	return config, nil
+
+	// 读取环境配置（如果存在）
+	viper.SetConfigName("config." + env)
+	if err := viper.MergeInConfig(); err != nil {
+		fmt.Printf("No specific config for %s environment, using default\n", env)
+	} else {
+		// 打印使用的配置文件路径
+		fmt.Printf("Loaded config for %s environment: %s\n", env, viper.ConfigFileUsed())
+	}
+
+	viper.AutomaticEnv()
+
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
