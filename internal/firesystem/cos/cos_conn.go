@@ -2,12 +2,14 @@ package cos
 
 import (
 	"context"
+	"errors"
 	"github.com/tencentyun/cos-go-sdk-v5"
+	"io"
 	"litedrive/internal/utils"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
+	"time"
 )
 
 // 接入腾讯云COS对象存储
@@ -67,14 +69,8 @@ func ListBuckets() ([]cos.Bucket, error) {
 }
 
 // 上传文件
-func UploadFile(objectKey, filePath string) error {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = CosClient.Object.Put(context.Background(), objectKey, f, nil)
+func UploadFile(objectKey string, file io.Reader) error {
+	_, err := CosClient.Object.Put(context.Background(), objectKey, file, nil)
 	if err != nil {
 		log.Printf("上传文件失败: %v", err)
 		return err
@@ -116,5 +112,62 @@ func DownloadFile(objectKey, localPath string) error {
 		return err
 	}
 	log.Println("文件下载成功:", objectKey)
+	return nil
+}
+
+// 临时下载链接
+func DownloadURL(objectKey string) (string, error) {
+	if CosClient == nil {
+		return "", errors.New("COS 客户端未初始化")
+	}
+
+	// 生成带签名的下载 URL
+	u, err := CosClient.Object.GetPresignedURL(
+		context.Background(),
+		http.MethodGet,
+		objectKey,
+		CosClient.GetCredential().SecretID,
+		CosClient.GetCredential().SecretKey,
+		3600*time.Second,
+		nil,
+	)
+	if err != nil {
+		log.Printf("获取下载 URL 失败: %v", err)
+		return "", err
+	}
+
+	return u.String(), nil
+}
+
+// TODO BuildLifecycleRule:针对指定的bucke设置生命周期规则 表示前缀为 test 的对象(文件)距最后修改时间30后过期
+func BuildLifecycleRule() error {
+	if CosClient == nil {
+		return errors.New("COS 客户端未初始化")
+	}
+
+	// 定义生命周期规则
+	rules := []cos.BucketLifecycleRule{
+		{
+			ID:     "expire-test-files",
+			Status: "Enabled",
+			Filter: &cos.BucketLifecycleFilter{Prefix: "test/"},
+			Expiration: &cos.BucketLifecycleExpiration{
+				Days: 30, // 文件最后修改时间 30 天后删除
+			},
+		},
+	}
+
+	// 发送生命周期配置请求
+	lc := &cos.BucketPutLifecycleOptions{
+		Rules: rules,
+	}
+
+	_, err := CosClient.Bucket.PutLifecycle(context.Background(), lc)
+	if err != nil {
+		log.Printf("设置生命周期规则失败: %v", err)
+		return err
+	}
+
+	log.Println("生命周期规则设置成功")
 	return nil
 }

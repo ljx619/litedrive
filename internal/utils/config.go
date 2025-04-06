@@ -74,7 +74,7 @@ func LoadConfig() (*Config, error) {
 		fmt.Printf("No specific config for %s environment, using default\n", env)
 	} else {
 		// 打印使用的配置文件路径
-		fmt.Printf("Loaded config for %s environment: %s\n", env, viper.ConfigFileUsed())
+		//fmt.Printf("Loaded config for %s environment: %s\n", env, viper.ConfigFileUsed())
 	}
 
 	viper.AutomaticEnv()

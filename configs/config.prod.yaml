@@ -15,7 +15,7 @@ cos:
 
 jwt:
   secret: "wP3-sN6&gG4-lV8>gJ9)"
-  expires: 1 # 小时
+  expires: 24 # 小时
 
 ceph:
   endpoint: "http://192.168.200.217:7480"

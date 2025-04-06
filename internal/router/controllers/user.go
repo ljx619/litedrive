@@ -2,50 +2,29 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"litedrive/internal/models"
 	"litedrive/internal/services/user"
+	"litedrive/pkg/serializer"
 	"net/http"
 )
 
-type ReqController struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-// TODO 将结构体从controller 解耦到 service中
 func Register(c *gin.Context) {
-	var req ReqController
+	var service user.UserService
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"data": err.Error()})
+	if err := c.ShouldBindJSON(&service); err != nil {
+		c.JSON(http.StatusBadRequest, serializer.ErrorResponse(err))
 		return
 	}
 
-	u := models.User{
-		Username: req.Username,
-		Password: req.Password,
-	}
+	res := service.Register(c)
 
-	_, err := u.SaveUser()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"data": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code":    http.StatusOK,
-		"message": "注册成功",
-		"data": gin.H{
-			"id":       u.ID,
-			"username": u.Username,
-		},
-	})
+	c.JSON(http.StatusOK, res)
 }
 
 func Login(c *gin.Context) {
-	var server user.UserLoginService
-	if err := c.ShouldBindJSON(&server); err == nil {
-		res := server.Login(c)
+	var service user.UserService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Login(c)
+
 		c.JSON(http.StatusOK, gin.H{
 			"code":    http.StatusOK,
 			"message": "登录成功",

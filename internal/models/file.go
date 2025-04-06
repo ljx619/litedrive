@@ -8,11 +8,9 @@ import (
 // File 文件元信息结构
 type File struct {
 	gorm.Model
-	Sha    string `json:"sha" gorm:"size:64;unique"`
-	UserID uint   `json:"user_id" gorm:"index"`
-	Name   string `json:"name" gorm:"size:255;not null"`
-	Size   int64  `json:"size" gorm:"not null"`
-	Path   string `json:"path" gorm:"size:255;not null"`
+	Sha  string `json:"sha" gorm:"type:char(64);unique;not null"`
+	Size int64  `json:"size" gorm:"not null;check:size >= 0"`
+	Path string `json:"path" gorm:"type:varchar(255);not null"`
 }
 
 // CreateFile 创建文件记录
@@ -53,4 +51,22 @@ func GetFileBySha(sha string) (*File, error) {
 		return nil, err
 	}
 	return &file, nil
+}
+
+// UpdateFilePathBySha 根据 SHA 更新文件存储路径
+func UpdateFilePathBySha(sha string, newPath string) error {
+	if sha == "" || newPath == "" {
+		return errors.New("sha 和 newPath 不能为空")
+	}
+
+	result := DB.Model(&File{}).Where("sha = ?", sha).Update("path", newPath)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("未找到匹配的文件，更新失败")
+	}
+
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/joho/godotenv"
 	"litedrive/internal/cache/redis"
 	"litedrive/internal/firesystem/ceph"
+	"litedrive/internal/firesystem/cos"
 	"litedrive/internal/models"
 	"litedrive/internal/router"
 	"litedrive/internal/utils"
@@ -12,16 +13,16 @@ import (
 )
 
 func init() {
+	godotenv.Load()
 	models.InitDatabase()
 	redis.InitRedis()
 	ceph.InitCephClient()
+	cos.InitCosClient()
 }
 
 func main() {
 	defer models.CloseDatabase()
 	defer redis.CloseRedis()
-	//加载环境变量
-	_ = godotenv.Load()
 	//加载配置文件
 	config, _ := utils.LoadConfig()
 	//注册路由

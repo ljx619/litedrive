@@ -3,13 +3,13 @@ package main
 //func main() {
 //ceph.InitCephClient()
 //// 直接获取对象数据
-//data, err := ceph.DownloadObject("testbucket1", "/ceph/73bf2b49f53267e2cd319404bf8b24bad8e3a4203bed90d845d657d07a8c0d9c/微信图片_20240430132302.jpg")
+//data, err := ceph.DownloadObject("testbucket1", "/ceph/73bf2b49f53267e2cd319404bf8b24bad8e3a4203bed90d845d657d07a8c0d9c/")
 //if err != nil {
 //	log.Fatalln("获取对象失败:", err)
 //}
 //
 //// 创建目标文件
-//tmpFile, err := os.Create("./storage/tmp/test_file")
+//tmpFile, err := os.Create("./storage/tmp/")
 //if err != nil {
 //	log.Fatal("创建文件失败:", err)
 //}
