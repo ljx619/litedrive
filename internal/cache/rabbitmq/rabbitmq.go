@@ -1,7 +1,7 @@
 package rabbitmq
 
 const (
-	AsyncTransfeEnable   = true
+	AsyncTransfeEnable   = false
 	RabbitURL            = "amqp://guest:guest@192.168.200.217:5672/"
 	TransExchangeName    = "uploadserver.trans"
 	TransCOSQueueName    = "uploadserver.trans.cos"

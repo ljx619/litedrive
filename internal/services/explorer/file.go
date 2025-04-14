@@ -3,18 +3,23 @@ package explorer
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"io"
-	//"litedrive/internal/firesystem/ceph"
+	rbmq "litedrive/internal/cache/rabbitmq"
+	"litedrive/internal/firesystem/ceph"
 	"litedrive/internal/firesystem/cos"
 	"litedrive/internal/models"
 	"litedrive/internal/utils"
+	cmn "litedrive/pkg/common"
 	"litedrive/pkg/serializer"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type FileService struct{}
@@ -72,11 +77,17 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 	if err != nil {
 		return serializer.ErrorResponse(err)
 	}
-	defer outFile.Close()
 
 	//写入文件
 	fileSize, err := io.Copy(outFile, file)
 	if err != nil {
+		return serializer.ErrorResponse(err)
+	}
+
+	//defer outFile.Close()
+	err = outFile.Close()
+	if err != nil {
+		log.Printf("关闭 outFile 失败: %v", err)
 		return serializer.ErrorResponse(err)
 	}
 
@@ -86,50 +97,74 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 		return serializer.ErrorResponse(err)
 	}
 
-	// TODO 经测试 此桶未作 sha 唯一验证 但是文件表中做了验证 所以数据会不一致
-	// 同时写入到 ceph 存储
-	//cephFilePath := "/ceph/" + fileSha + "/" + header.Filename
-	//err = ceph.UploadObject("testbucket1", cephFilePath, file)
-	//if err != nil {
-	//	return serializer.ErrorResponse(err)
-	//}
-	//err = ceph.ListObjects("testbucket1")
-	//if err != nil {
-	//	return serializer.ErrorResponse(err)
-	//}
+	// TODO ceph 与 cos 异步逻辑控制
+	storeType := cmn.ParseStoreType(config.Storage.CurrentStoreType)
+	// 声明并初始化 finalFilePath
+	finalFilePath := filePath
 
-	//TODO COS逻辑实现
-	//cosFilePath := "/cos/" + fileSha + "/" + header.Filename
-	// 暂时注释测试 rabbitmq
-	//err = cos.UploadFile(filePath, file)
-	//if err != nil {
-	//	return serializer.ErrorResponse(err)
-	//}
-	//objects, err := cos.ListObjects("litedrive-filestore-1320309154")
-	//if err != nil {
-	//	return serializer.ErrorResponse(err)
-	//}
-	//fmt.Println(objects)
+	switch storeType {
+	case cmn.StoreCeph:
+		// 文件写入Ceph存储
+		cephPath := config.Storage.CephRootDir + fileSha
+		err = ceph.UploadObject(cephPath, file)
+		//fileMeta.Location = cephPath
+		if err != nil {
+			return serializer.ErrorResponse(err)
+		}
+		finalFilePath = cephPath
 
-	////rabbitmq 部分
-	//data := rabbitmq.TransferData{
-	//	FileHash:      fileSha,
-	//	CurLocation:   filePath,
-	//	DestLocation:  cosFilePath,
-	//	DestStoreType: common.StoreOSS,
-	//}
-	//pubData, _ := json.Marshal(data)
-	//suc := rabbitmq.Publish(rabbitmq.TransExchangeName, rabbitmq.TransOSSRoutingKey, pubData)
-	//if !suc {
-	//	// 加入重拾发送消息逻辑
-	//	return serializer.ErrorResponse(err)
-	//}
+	case cmn.StoreCOS:
+		// 文件写入COS存储
+		cosPath := config.Storage.CosRootDir + fileSha
+		// 判断写入COS为同步还是异步
+		if !rbmq.AsyncTransfeEnable {
+			// TODO: 设置oss中的文件名，方便指定文件名下载
+			err = cos.UploadFile(cosPath, file)
+			if err != nil {
+				return serializer.ErrorResponse(err)
+			}
+			finalFilePath = cosPath
+
+		} else {
+			// 异步上传任务推送到 RabbitMQ
+			data := rbmq.TransferData{
+				FileHash:      fileSha,
+				CurLocation:   filePath,
+				DestLocation:  cosPath,
+				DestStoreType: cmn.StoreCOS,
+			}
+			pubData, _ := json.Marshal(data)
+			pubSuc := rbmq.Publish(
+				rbmq.TransExchangeName,
+				rbmq.TransOSSRoutingKey,
+				pubData,
+			)
+			if !pubSuc {
+				log.Println("异步任务推送失败，稍后可重试")
+				// TODO: 当前发送转移信息失败，稍后重试
+			}
+
+		}
+		//default:
+		//	// 其他类型暂未支持
+		//	return serializer.ErrorResponse(errors.New("暂不支持的存储类型"))
+	}
+
+	// 上传完成后删除本地临时文件
+	if storeType == cmn.StoreCeph || storeType == cmn.StoreCOS {
+		// 尝试删除本地文件
+		err = os.Remove(filePath)
+		if err != nil {
+			log.Printf("删除本地临时文件失败: %v", err)
+			// 可以考虑添加延迟或重试机制
+		}
+	}
 
 	//创建文件记录
 	fileRecord := &models.File{
 		Sha:  fileSha,
 		Size: fileSize,
-		Path: filePath,
+		Path: finalFilePath,
 	}
 
 	//调用 Model 层方法存入文件表
@@ -230,9 +265,23 @@ func (s *FileService) DeleteFile(c *gin.Context) serializer.Response {
 			return serializer.ErrorResponse(err)
 		}
 
-		// 删除文件物理文件
-		if err := os.Remove(file.Path); err != nil {
-			return serializer.ErrorResponse(err)
+		// TODO 做多存储删除策略
+		switch {
+		case strings.HasPrefix(file.Path, "storage"):
+			// 删除文件物理文件
+			if err := os.Remove(file.Path); err != nil {
+				return serializer.ErrorResponse(err)
+			}
+		case strings.HasPrefix(file.Path, "/ceph"):
+			if err := ceph.DeleteObject(file.Path); err != nil {
+				return serializer.ErrorResponse(err)
+			}
+		case strings.HasPrefix(file.Path, "cos"):
+			if err := cos.DeleteFile(file.Path); err != nil {
+				return serializer.ErrorResponse(err)
+			}
+		default:
+			return serializer.ErrorResponse(errors.New("未知的存储类型"))
 		}
 
 		// 删除 File 记录

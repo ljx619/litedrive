@@ -30,13 +30,19 @@ type JWTConfig struct {
 }
 
 type StorageConfig struct {
-	Root string `mapstructure:"root"`
+	Root             string `mapstructure:"root"`
+	TempLocalRoot    string `mapstructure:"temp_local_root"`
+	TempPartRoot     string `mapstructure:"temp_part_root"`
+	CephRootDir      string `mapstructure:"ceph_root_dir"`
+	CosRootDir       string `mapstructure:"cos_root_dir"`
+	CurrentStoreType string `mapstructure:"current_store_type"`
 }
 
 type CephConfig struct {
 	Endpoint  string `mapstructure:"endpoint"`
 	AccessKey string `mapstructure:"access_key"`
 	SecretKey string `mapstructure:"secret_key"`
+	Bucket    string `mapstructure:"bucket"`
 }
 
 type RedisConfig struct {

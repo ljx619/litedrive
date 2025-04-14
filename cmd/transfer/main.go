@@ -28,7 +28,8 @@ func ProcessTransfer(msg []byte) bool {
 	defer file.Close()
 
 	//通过文件句柄将文件内容读出来并且上传到 cos
-	err = cos.UploadFile(pubData.FileHash, file)
+	//err = cos.UploadFile(pubData.FileHash, file)
+	err = cos.UploadFile(pubData.DestLocation, file)
 	if err != nil {
 		log.Println(err)
 		return false
