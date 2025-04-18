@@ -27,6 +27,7 @@ type FileService struct{}
 type RapidCheckService struct {
 	FileName string `json:"fileName"`
 	FileHash string `json:"fileHash"`
+	DirID    uint   `json:"dirId"`
 }
 
 type RenameFileService struct {
@@ -48,6 +49,16 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 	}
 	// 转换为合适类型
 	userIDInt := userID.(uint)
+
+	dirIDStr := c.PostForm("dirId") // 来自前端表单
+	var dirID uint = 0
+	if dirIDStr != "" {
+		parsedID, err := strconv.ParseUint(dirIDStr, 10, 64)
+		if err != nil {
+			return serializer.ErrorResponse(err, "无效的目录 ID")
+		}
+		dirID = uint(parsedID)
+	}
 
 	// 获取上传的文件
 	file, header, err := c.Request.FormFile("explorer")
@@ -177,6 +188,7 @@ func (s *FileService) UploadFile(c *gin.Context) serializer.Response {
 		UserID:   userIDInt,
 		FileID:   fileRecord.ID,
 		FileName: header.Filename,
+		DirID:    dirID,
 	}
 
 	if err := userFileRecord.OnUserFileUploadFinished(); err != nil {
@@ -342,6 +354,7 @@ func (s *RapidCheckService) RapidCheck(c *gin.Context) serializer.Response {
 		UserID:   userIDInt,
 		FileID:   existingFile.ID,
 		FileName: fileName,
+		DirID:    s.DirID,
 	}
 
 	if err := userFileRecord.OnUserFileUploadFinished(); err != nil {

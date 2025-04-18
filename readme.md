@@ -32,7 +32,7 @@ docker run -d --hostname rabbit --name rabbitmq -p 5672:5672 -p 15672:15672 rabb
 ```
 
 ## 🔧 TODO / 规划中
-- [ ] 前端分目录存储结构
+- [x] 前端分目录存储结构
 - [ ] 文件预览支持（PDF / 图片）
 - [ ] 分享链接与过期机制
 - [ ] 全平台打包与部署（Docker）

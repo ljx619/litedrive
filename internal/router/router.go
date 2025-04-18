@@ -39,6 +39,16 @@ func InitRouter() *gin.Engine {
 		apiFiles.POST("/rapidcheck", controllers.RapidCheck)        // 秒传接口
 	}
 
+	apiDir := r.Group("/api/dir")
+	{
+		apiDir.Use(middlewares.JwtAuthMiddleware())
+		apiDir.POST("", controllers.CreateDir)
+		apiDir.GET("/", controllers.ListSubDirs)
+		apiDir.DELETE("", controllers.DeleteDir)
+		apiDir.PUT("", controllers.RenameDir)
+		apiDir.GET("/list", controllers.ListDirFiles)
+	}
+
 	apiChunk := r.Group("/api/chunk")
 	{
 		apiChunk.Use(middlewares.JwtAuthMiddleware())

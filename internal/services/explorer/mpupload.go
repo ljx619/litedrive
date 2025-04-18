@@ -128,6 +128,7 @@ func CompleteMultipartUpload(c *gin.Context) serializer.Response {
 	type req struct {
 		UploadID string `json:"upload_id"`
 		FileName string `json:"file_name"`
+		DirId    uint   `json:"dir_id"`
 	}
 	var reqInfo req
 
@@ -179,6 +180,12 @@ func CompleteMultipartUpload(c *gin.Context) serializer.Response {
 		os.Remove(chunkPath)
 	}
 
+	// 删除存储块文件的临时文件夹
+	chunkDir := filepath.Join(config.Storage.Root, reqInfo.UploadID)
+	if err := os.RemoveAll(chunkDir); err != nil {
+		log.Printf("删除临时目录失败: %v", err)
+	}
+
 	fileInfo, err := outFile.Stat()
 	if err != nil {
 		return serializer.ErrorResponse(errors.New("获取合并文件信息失败"))
@@ -209,6 +216,7 @@ func CompleteMultipartUpload(c *gin.Context) serializer.Response {
 		UserID:   userIDInt, // 当前用户ID
 		FileID:   file.ID,   // 文件ID（刚刚插入的 file 记录的 ID）
 		FileName: reqInfo.FileName,
+		DirID:    reqInfo.DirId,
 		Status:   "active", // 文件状态
 	}
 	err = models.DB.Create(&userFile).Error

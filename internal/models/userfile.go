@@ -10,11 +10,13 @@ type UserFile struct {
 	UserID   uint   `gorm:"not null;uniqueIndex:idx_user_file"`                   // 联合唯一
 	FileID   uint   `gorm:"not null;uniqueIndex:idx_user_file"`                   // 联合唯一
 	FileName string `gorm:"type:varchar(255);not null;uniqueIndex:idx_user_file"` // 联合唯一
-	Status   string `gorm:"type:varchar(20);default:'active';check:status IN ('active', 'deleted', 'locked')"`
 
+	DirID  uint   `gorm:"default:0;index"` // 所属目录
+	Status string `gorm:"type:varchar(20);default:'active';check:status IN ('active', 'deleted', 'locked')"`
 	// 外键关联
 	User User `gorm:"foreignKey:UserID;references:ID"`
 	File File `gorm:"foreignKey:FileID;references:ID"`
+	//Dir  UserDir `gorm:"foreignKey:DirID;references:ID"`
 }
 
 // OnUserFileUploadFinished: 更新用户文件表

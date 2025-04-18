@@ -20,7 +20,7 @@ func InitDatabase() {
 		log.Println("Connected to database successfully")
 	}
 
-	DB.AutoMigrate(&User{}, &File{}, &UserFile{})
+	DB.AutoMigrate(&User{}, &File{}, &UserFile{}, &UserDir{})
 
 }
 
